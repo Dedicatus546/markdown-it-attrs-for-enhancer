@@ -1,18 +1,19 @@
-/**
- * @typedef {import('.').Token} Token
- * @typedef {import('.').Options} Options
- * @typedef {import('.').AttributePair} AttributePair
- * @typedef {import('.').AllowedAttribute} AllowedAttribute
- * @typedef {import('.').DetectingStrRule} DetectingStrRule
- */
+import { Token, TokenAttr } from "markdown-it-enhancer";
+
+import { AttributeNormalizedOptions, AttributeOptions } from "./types";
+
 /**
  * parse {.class #id key=val} strings
- * @param {string} str: string to parse
- * @param {number} start: where to start parsing (including {)
- * @param {Options} options
- * @returns {AttributePair[]}: [['key', 'val'], ['class', 'red']]
  */
-exports.getAttrs = function (str, start, options) {
+export const getAttrs = (
+  str: string,
+  start: number,
+  options: Pick<
+    AttributeNormalizedOptions,
+    "leftDelimiter" | "rightDelimiter"
+  > &
+    Pick<AttributeOptions, "allowedAttributes">,
+): Array<TokenAttr> => {
   // not tab, line feed, form feed, space, solidus, greater than sign, quotation mark, apostrophe and equals sign
   const allowedKeyChars = /[^\t\n\f />"'=]/;
   const pairSeparator = " ";
@@ -20,7 +21,7 @@ exports.getAttrs = function (str, start, options) {
   const classChar = ".";
   const idChar = "#";
 
-  const attrs = [];
+  const attrs: Array<TokenAttr> = [];
   let key = "";
   let value = "";
   let parsingKey = true;
@@ -104,18 +105,14 @@ exports.getAttrs = function (str, start, options) {
   if (options.allowedAttributes && options.allowedAttributes.length) {
     const allowedAttributes = options.allowedAttributes;
 
-    return attrs.filter(function (attrPair) {
+    return attrs.filter((attrPair) => {
       const attr = attrPair[0];
 
-      /**
-       * @param {AllowedAttribute} allowedAttribute
-       */
-      function isAllowedAttribute(allowedAttribute) {
-        return (
-          attr === allowedAttribute ||
-          (allowedAttribute instanceof RegExp && allowedAttribute.test(attr))
-        );
-      }
+      const isAllowedAttribute = (
+        allowedAttribute: AttributeNormalizedOptions["allowedAttributes"][number],
+      ) =>
+        attr === allowedAttribute ||
+        (allowedAttribute instanceof RegExp && allowedAttribute.test(attr));
 
       return allowedAttributes.some(isAllowedAttribute);
     });
@@ -125,11 +122,8 @@ exports.getAttrs = function (str, start, options) {
 
 /**
  * add attributes from [['key', 'val']] list
- * @param {AttributePair[]} attrs: [['key', 'val']]
- * @param {Token} token: which token to add attributes
- * @returns token
  */
-exports.addAttrs = function (attrs, token) {
+export const addAttrs = (attrs: Array<TokenAttr>, token: Token) => {
   for (let j = 0, l = attrs.length; j < l; ++j) {
     const key = attrs[j][0];
     if (key === "class") {
@@ -149,23 +143,18 @@ exports.addAttrs = function (attrs, token) {
  * start: '{.a} asdf'
  * end: 'asdf {.a}'
  * only: '{.a}'
- *
- * @param {'start'|'end'|'only'} where to expect {} curly. start, end or only.
- * @param {Options} options
- * @return {DetectingStrRule} Function which testes if string has curly.
  */
-exports.hasDelimiters = function (where, options) {
+export const hasDelimiters = (
+  where: "start" | "end" | "only",
+  options: AttributeNormalizedOptions,
+) => {
   if (!where) {
     throw new Error(
       'Parameter `where` not passed. Should be "start", "end" or "only".',
     );
   }
 
-  /**
-   * @param {string} str
-   * @return {boolean}
-   */
-  return function (str) {
+  return function (str: string) {
     // we need minimum three chars, for example {b}
     const minCurlyLength =
       options.leftDelimiter.length + 1 + options.rightDelimiter.length;
@@ -173,10 +162,7 @@ exports.hasDelimiters = function (where, options) {
       return false;
     }
 
-    /**
-     * @param {string} curly
-     */
-    function validCurlyLength(curly) {
+    function validCurlyLength(curly: string) {
       const isClass = curly.charAt(options.leftDelimiter.length) === ".";
       const isId = curly.charAt(options.leftDelimiter.length) === "#";
       return isClass || isId
@@ -245,10 +231,11 @@ exports.hasDelimiters = function (where, options) {
 
 /**
  * Removes last curly from string.
- * @param {string} str
- * @param {Options} options
  */
-exports.removeDelimiter = function (str, options) {
+export const removeDelimiter = (
+  str: string,
+  options: AttributeNormalizedOptions,
+) => {
   const start = escapeRegExp(options.leftDelimiter);
   const end = escapeRegExp(options.rightDelimiter);
 
@@ -263,21 +250,12 @@ exports.removeDelimiter = function (str, options) {
 /**
  * Escapes special characters in string s such that the string
  * can be used in `new RegExp`. For example "[" becomes "\\[".
- *
- * @param {string} s Regex string.
- * @return {string} Escaped string.
  */
-function escapeRegExp(s) {
+export const escapeRegExp = (s: string) => {
   return s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
-}
-exports.escapeRegExp = escapeRegExp;
+};
 
-/**
- * find corresponding opening block
- * @param {Token[]} tokens
- * @param {number} i
- */
-exports.getMatchingOpeningToken = function (tokens, i) {
+export const getMatchingOpeningToken = (tokens: Array<Token>, i: number) => {
   if (tokens[i].type === "softbreak") {
     return false;
   }
@@ -308,23 +286,42 @@ const HTML_REPLACEMENTS = {
   "<": "&lt;",
   ">": "&gt;",
   '"': "&quot;",
+} as const;
+
+export const replaceUnsafeChar = (ch: string) => {
+  return HTML_REPLACEMENTS[ch as keyof typeof HTML_REPLACEMENTS];
 };
 
-/**
- * @param {string} ch
- * @returns {string}
- */
-function replaceUnsafeChar(ch) {
-  return HTML_REPLACEMENTS[ch];
-}
-
-/**
- * @param {string} str
- * @returns {string}
- */
-exports.escapeHtml = function (str) {
+export const escapeHtml = (str: string) => {
   if (HTML_ESCAPE_TEST_RE.test(str)) {
     return str.replace(HTML_ESCAPE_REPLACE_RE, replaceUnsafeChar);
   }
   return str;
+};
+
+export const isArrayOfObjects = (arr?: unknown) => {
+  return (
+    Array.isArray(arr) && arr.length && arr.every((i) => typeof i === "object")
+  );
+};
+
+export const isArrayOfFunctions = (arr?: unknown) => {
+  return (
+    Array.isArray(arr) &&
+    arr.length &&
+    arr.every((i) => typeof i === "function")
+  );
+};
+
+/**
+ * Hidden table's cells and them inline children,
+ * specially cast inline's content as empty
+ * to prevent that escapes the table's box model
+ */
+export const hidden = (token: Token) => {
+  token.hidden = true;
+  token.children.forEach((t) => {
+    t.content = "";
+    hidden(t);
+  });
 };

@@ -1,8 +1,8 @@
 /* eslint-env es6 */
-const md = require('markdown-it')();
-const markdownItAttrs = require('./');
+const md = require("markdown-it")();
+const markdownItAttrs = require("./");
 
-md.use(markdownItAttrs).use(require('../markdown-it-implicit-figures'));
+md.use(markdownItAttrs).use(require("../markdown-it-implicit-figures"));
 
 const src = `header1 | header2
 ------- | -------

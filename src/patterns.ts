@@ -1,21 +1,24 @@
-"use strict";
-/**
- * If a pattern matches the token stream,
- * then run transform.
- */
+import type { Token } from "markdown-it-enhancer";
 
-const utils = require("./utils.js");
+import type { AttributeNormalizedOptions, PatternsResult } from "./types";
+import {
+  addAttrs,
+  escapeRegExp,
+  getAttrs,
+  getMatchingOpeningToken,
+  hasDelimiters,
+  hidden,
+  removeDelimiter,
+} from "./utils";
 
-/**
- * @param {import('.').Options} options
- * @returns {import('.').CurlyAttrsPattern[]}
- */
-module.exports = (options) => {
+export const patterns = (
+  options: AttributeNormalizedOptions,
+): PatternsResult => {
   const __hr = new RegExp(
     "^ {0,3}[-*_]{3,} ?" +
-      utils.escapeRegExp(options.leftDelimiter) +
+      escapeRegExp(options.leftDelimiter) +
       "[^" +
-      utils.escapeRegExp(options.rightDelimiter) +
+      escapeRegExp(options.rightDelimiter) +
       "]",
   );
 
@@ -32,15 +35,15 @@ module.exports = (options) => {
         {
           shift: 0,
           block: true,
-          info: utils.hasDelimiters("end", options),
+          info: hasDelimiters("end", options),
         },
       ],
       transform: (tokens, i) => {
         const token = tokens[i];
         const start = token.info.lastIndexOf(options.leftDelimiter);
-        const attrs = utils.getAttrs(token.info, start, options);
-        utils.addAttrs(attrs, token);
-        token.info = utils.removeDelimiter(token.info, options);
+        const attrs = getAttrs(token.info, start, options);
+        addAttrs(attrs, token);
+        token.info = removeDelimiter(token.info, options);
       },
     },
     {
@@ -58,25 +61,22 @@ module.exports = (options) => {
           children: [
             {
               shift: -1,
-              type: (str) => str === "image" || str === "code_inline",
+              type: (str: string) => str === "image" || str === "code_inline",
             },
             {
               shift: 0,
               type: "text",
-              content: utils.hasDelimiters("start", options),
+              content: hasDelimiters("start", options),
             },
           ],
         },
       ],
-      /**
-       * @param {!number} j
-       */
       transform: (tokens, i, j) => {
         const token = tokens[i].children[j];
         const endChar = token.content.indexOf(options.rightDelimiter);
         const attrToken = tokens[i].children[j - 1];
-        const attrs = utils.getAttrs(token.content, 0, options);
-        utils.addAttrs(attrs, attrToken);
+        const attrs = getAttrs(token.content, 0, options);
+        addAttrs(attrs, attrToken);
         if (token.content.length === endChar + options.rightDelimiter.length) {
           tokens[i].children.splice(j, 1);
         } else {
@@ -109,15 +109,15 @@ module.exports = (options) => {
         {
           shift: 2,
           type: "inline",
-          content: utils.hasDelimiters("only", options),
+          content: hasDelimiters("only", options),
         },
       ],
       transform: (tokens, i) => {
         const token = tokens[i + 2];
-        const tableOpen = utils.getMatchingOpeningToken(tokens, i);
-        const attrs = utils.getAttrs(token.content, 0, options);
+        const tableOpen = getMatchingOpeningToken(tokens, i) as Token;
+        const attrs = getAttrs(token.content, 0, options);
         // add attributes
-        utils.addAttrs(attrs, tableOpen);
+        addAttrs(attrs, tableOpen);
         // remove <p>{.c}</p>
         tokens.splice(i + 1, 3);
       },
@@ -149,7 +149,7 @@ module.exports = (options) => {
         },
       ],
       transform: (tokens, i) => {
-        const tr = utils.getMatchingOpeningToken(tokens, i);
+        const tr = getMatchingOpeningToken(tokens, i);
         const th = tokens[i - 1];
         let colsnum = 0;
         let n = i;
@@ -161,7 +161,7 @@ module.exports = (options) => {
             break;
           }
           colsnum +=
-            (tokens[n].level === th.level && tokens[n].type === th.type) >> 0;
+            tokens[n].level === th.level && tokens[n].type === th.type ? 1 : 0;
         }
         tokens[i + 2].meta = Object.assign({}, tokens[i + 2].meta, { colsnum });
       },
@@ -182,15 +182,12 @@ module.exports = (options) => {
           hidden: false,
         },
       ],
-      /**
-       * @param {number} i index of the tbody ending
-       */
       transform: (tokens, i) => {
         /** index of the tbody beginning */
         let idx = i - 2;
         while (idx > 0 && "tbody_open" !== tokens[--idx].type);
 
-        const calc = tokens[idx].meta.colsnum >> 0;
+        const calc = (tokens[idx].meta?.colsnum as number) >> 0;
         if (calc < 2) {
           return;
         }
@@ -202,18 +199,22 @@ module.exports = (options) => {
           }
 
           const token = tokens[n];
-          const rows = token.hidden ? 0 : token.attrGet("rowspan") >> 0;
-          const cols = token.hidden ? 0 : token.attrGet("colspan") >> 0;
+          const rows = token.hidden
+            ? 0
+            : Number.parseInt(token.attrGet(",") ?? "0");
+          const cols = token.hidden
+            ? 0
+            : Number.parseInt(token.attrGet("colspan") ?? "0");
 
           if (rows > 1) {
             let colsnum = calc - (cols > 0 ? cols : 1);
-            for (let k = n, num = rows; k < i, num > 1; k++) {
+            for (let k = n, num = rows; num > 1; k++) {
               if ("tr_open" == tokens[k].type) {
                 tokens[k].meta = Object.assign({}, tokens[k].meta);
-                if (tokens[k].meta && tokens[k].meta.colsnum) {
+                if (tokens[k].meta && tokens[k].meta?.colsnum) {
                   colsnum -= 1;
                 }
-                tokens[k].meta.colsnum = colsnum;
+                tokens[k].meta!.colsnum = colsnum;
                 num--;
               }
             }
@@ -227,13 +228,15 @@ module.exports = (options) => {
               } else if ("tr_close" == tokens[k].type) {
                 break;
               }
-              num > max && (tokens[k].hidden || hidden(tokens[k]));
+              if (num > max && !tokens[k].hidden) {
+                hidden(tokens[k]);
+              }
             }
           }
 
           if (cols > 1) {
-            /** @type {number[]} index of one row's children */
-            const one = [];
+            /** index of one row's children */
+            const one: Array<number> = [];
             /** last index of the row's children */
             let end = n + 3;
             /** number of the row's children */
@@ -241,7 +244,7 @@ module.exports = (options) => {
 
             for (let k = n; k > idx; k--) {
               if ("tr_open" == tokens[k].type) {
-                num = (tokens[k].meta && tokens[k].meta.colsnum) || num;
+                num = tokens[k].meta?.colsnum ?? num;
                 break;
               } else if ("td_open" === tokens[k].type) {
                 one.unshift(k);
@@ -260,10 +263,14 @@ module.exports = (options) => {
             const off = one.indexOf(n);
             let real = num - off;
             real = real > cols ? cols : real;
-            cols > real && token.attrSet("colspan", real + "");
+            if (cols > real) {
+              token.attrSet("colspan", real + "");
+            }
 
             for (let k = one.slice(num + 1 - calc - real)[0]; k < end; k++) {
-              tokens[k].hidden || hidden(tokens[k]);
+              if (!tokens[k].hidden) {
+                hidden(tokens[k]);
+              }
             }
           }
         }
@@ -286,23 +293,20 @@ module.exports = (options) => {
             {
               shift: 0,
               type: "text",
-              content: utils.hasDelimiters("start", options),
+              content: hasDelimiters("start", options),
             },
           ],
         },
       ],
-      /**
-       * @param {!number} j
-       */
       transform: (tokens, i, j) => {
         const token = tokens[i].children[j];
         const content = token.content;
-        const attrs = utils.getAttrs(content, 0, options);
-        const openingToken = utils.getMatchingOpeningToken(
+        const attrs = getAttrs(content, 0, options);
+        const openingToken = getMatchingOpeningToken(
           tokens[i].children,
           j - 1,
-        );
-        utils.addAttrs(attrs, openingToken);
+        ) as Token;
+        addAttrs(attrs, openingToken);
         token.content = content.slice(
           content.indexOf(options.rightDelimiter) +
             options.rightDelimiter.length,
@@ -331,18 +335,15 @@ module.exports = (options) => {
             {
               position: -1,
               type: "text",
-              content: utils.hasDelimiters("only", options),
+              content: hasDelimiters("only", options),
             },
           ],
         },
       ],
-      /**
-       * @param {!number} j
-       */
       transform: (tokens, i, j) => {
         const token = tokens[i].children[j];
         const content = token.content;
-        const attrs = utils.getAttrs(content, 0, options);
+        const attrs = getAttrs(content, 0, options);
         let ii = i - 2;
         while (
           tokens[ii - 1] &&
@@ -351,7 +352,7 @@ module.exports = (options) => {
         ) {
           ii--;
         }
-        utils.addAttrs(attrs, tokens[ii - 1]);
+        addAttrs(attrs, tokens[ii - 1]);
         tokens[i].children = tokens[i].children.slice(0, -2);
       },
     },
@@ -379,7 +380,7 @@ module.exports = (options) => {
         {
           shift: 2,
           type: "inline",
-          content: utils.hasDelimiters("only", options),
+          content: hasDelimiters("only", options),
           children: (arr) => arr.length === 1,
         },
         {
@@ -390,9 +391,9 @@ module.exports = (options) => {
       transform: (tokens, i) => {
         const token = tokens[i + 2];
         const content = token.content;
-        const attrs = utils.getAttrs(content, 0, options);
-        const openingToken = utils.getMatchingOpeningToken(tokens, i);
-        utils.addAttrs(attrs, openingToken);
+        const attrs = getAttrs(content, 0, options);
+        const openingToken = getMatchingOpeningToken(tokens, i) as Token;
+        addAttrs(attrs, openingToken);
         tokens.splice(i + 1, 3);
       },
     },
@@ -413,28 +414,25 @@ module.exports = (options) => {
             {
               position: -1,
               type: "text",
-              content: utils.hasDelimiters("end", options),
+              content: hasDelimiters("end", options),
             },
           ],
         },
       ],
-      /**
-       * @param {!number} j
-       */
       transform: (tokens, i, j) => {
         const token = tokens[i].children[j];
         const content = token.content;
-        const attrs = utils.getAttrs(
+        const attrs = getAttrs(
           content,
           content.lastIndexOf(options.leftDelimiter),
           options,
         );
-        utils.addAttrs(attrs, tokens[i - 2]);
+        addAttrs(attrs, tokens[i - 2]);
         const trimmed = content.slice(
           0,
           content.lastIndexOf(options.leftDelimiter),
         );
-        token.content = last(trimmed) !== " " ? trimmed : trimmed.slice(0, -1);
+        token.content = trimmed.at(-1) !== " " ? trimmed : trimmed.slice(0, -1);
       },
     },
     {
@@ -455,24 +453,21 @@ module.exports = (options) => {
             {
               position: -1,
               type: "text",
-              content: utils.hasDelimiters("only", options),
+              content: hasDelimiters("only", options),
             },
           ],
         },
       ],
-      /**
-       * @param {!number} j
-       */
       transform: (tokens, i, j) => {
         const token = tokens[i].children[j];
-        const attrs = utils.getAttrs(token.content, 0, options);
+        const attrs = getAttrs(token.content, 0, options);
         // find last closing tag
         let ii = i + 1;
         while (tokens[ii + 1] && tokens[ii + 1].nesting === -1) {
           ii++;
         }
-        const openingToken = utils.getMatchingOpeningToken(tokens, ii);
-        utils.addAttrs(attrs, openingToken);
+        const openingToken = getMatchingOpeningToken(tokens, ii) as Token;
+        addAttrs(attrs, openingToken);
         tokens[i].children = tokens[i].children.slice(0, -2);
       },
     },
@@ -504,8 +499,8 @@ module.exports = (options) => {
         token.nesting = 0;
         const content = tokens[i + 1].content;
         const start = content.lastIndexOf(options.leftDelimiter);
-        const attrs = utils.getAttrs(content, start, options);
-        utils.addAttrs(attrs, token);
+        const attrs = getAttrs(content, start, options);
+        addAttrs(attrs, token);
         token.markup = content;
         tokens.splice(i + 1, 2);
       },
@@ -522,19 +517,16 @@ module.exports = (options) => {
           children: [
             {
               position: -1,
-              content: utils.hasDelimiters("end", options),
+              content: hasDelimiters("end", options),
               type: (t) => t !== "code_inline" && t !== "math_inline",
             },
           ],
         },
       ],
-      /**
-       * @param {!number} j
-       */
       transform: (tokens, i, j) => {
         const token = tokens[i].children[j];
         const content = token.content;
-        const attrs = utils.getAttrs(
+        const attrs = getAttrs(
           content,
           content.lastIndexOf(options.leftDelimiter),
           options,
@@ -545,32 +537,14 @@ module.exports = (options) => {
             break;
           }
         while (ii++ < tokens.length);
-        const openingToken = utils.getMatchingOpeningToken(tokens, ii);
-        utils.addAttrs(attrs, openingToken);
+        const openingToken = getMatchingOpeningToken(tokens, ii) as Token;
+        addAttrs(attrs, openingToken);
         const trimmed = content.slice(
           0,
           content.lastIndexOf(options.leftDelimiter),
         );
-        token.content = last(trimmed) !== " " ? trimmed : trimmed.slice(0, -1);
+        token.content = trimmed.at(-1) !== " " ? trimmed : trimmed.slice(0, -1);
       },
     },
   ];
 };
-
-// get last element of array or string
-function last(arr) {
-  return arr.slice(-1)[0];
-}
-
-/**
- * Hidden table's cells and them inline children,
- * specially cast inline's content as empty
- * to prevent that escapes the table's box model
- * @see https://github.com/markdown-it/markdown-it/issues/639
- * @param {import('.').Token} token
- */
-function hidden(token) {
-  token.hidden = true;
-  token.children &&
-    token.children.forEach((t) => ((t.content = ""), hidden(t), undefined));
-}

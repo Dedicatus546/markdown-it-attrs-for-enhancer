@@ -1,6 +1,6 @@
-'use strict';
+"use strict";
 
-const patternsConfig = require('./patterns.js');
+const patternsConfig = require("./patterns.js");
 
 /**
  * @typedef {import('markdown-it')} MarkdownIt
@@ -53,9 +53,9 @@ const patternsConfig = require('./patterns.js');
 
 /** @type {Options} */
 const defaultOptions = {
-  leftDelimiter: '{',
-  rightDelimiter: '}',
-  allowedAttributes: []
+  leftDelimiter: "{",
+  rightDelimiter: "}",
+  allowedAttributes: [],
 };
 
 /**
@@ -78,14 +78,19 @@ module.exports = function attributes(md, options_) {
       for (let p = 0; p < patterns.length; p++) {
         const pattern = patterns[p];
         let j = null; // position of child with offset 0
-        const match = pattern.tests.every(t => {
+        const match = pattern.tests.every((t) => {
           const res = test(tokens, i, t);
-          if (res.j !== null) { j = res.j; }
+          if (res.j !== null) {
+            j = res.j;
+          }
           return res.match;
         });
         if (match) {
           pattern.transform(tokens, i, j);
-          if (pattern.name === 'inline attributes' || pattern.name === 'inline nesting 0') {
+          if (
+            pattern.name === "inline attributes" ||
+            pattern.name === "inline nesting 0"
+          ) {
             // retry, may be several inline attributes
             p--;
           }
@@ -94,7 +99,7 @@ module.exports = function attributes(md, options_) {
     }
   }
 
-  md.core.ruler.before('linkify', 'curly_attributes', curlyAttrs);
+  md.core.ruler.before("linkify", "curly_attributes", curlyAttrs);
 };
 
 /**
@@ -109,29 +114,32 @@ function test(tokens, i, t) {
   /** @type {MatchedResult} */
   const res = {
     match: false,
-    j: null  // position of child
+    j: null, // position of child
   };
 
-  const ii = t.shift !== undefined
-    ? i + t.shift
-    : t.position;
+  const ii = t.shift !== undefined ? i + t.shift : t.position;
 
   if (t.shift !== undefined && ii < 0) {
     // we should never shift to negative indexes (rolling around to back of array)
     return res;
   }
 
-  const token = get(tokens, ii);  // supports negative ii
+  const token = get(tokens, ii); // supports negative ii
 
-
-  if (token === undefined) { return res; }
+  if (token === undefined) {
+    return res;
+  }
 
   for (const key of Object.keys(t)) {
-    if (key === 'shift' || key === 'position') { continue; }
+    if (key === "shift" || key === "position") {
+      continue;
+    }
 
-    if (token[key] === undefined) { return res; }
+    if (token[key] === undefined) {
+      return res;
+    }
 
-    if (key === 'children' && isArrayOfObjects(t.children)) {
+    if (key === "children" && isArrayOfObjects(t.children)) {
       if (token.children.length === 0) {
         return res;
       }
@@ -140,9 +148,9 @@ function test(tokens, i, t) {
       const childTests = t.children;
       /** @type {Token[]} */
       const children = token.children;
-      if (childTests.every(tt => tt.position !== undefined)) {
+      if (childTests.every((tt) => tt.position !== undefined)) {
         // positions instead of shifts, do not loop all children
-        match = childTests.every(tt => test(children, tt.position, tt).match);
+        match = childTests.every((tt) => test(children, tt.position, tt).match);
         if (match) {
           // we may need position of child in transform
           const j = last(childTests).position;
@@ -150,7 +158,7 @@ function test(tokens, i, t) {
         }
       } else {
         for (let j = 0; j < children.length; j++) {
-          match = childTests.every(tt => test(children, j, tt).match);
+          match = childTests.every((tt) => test(children, j, tt).match);
           if (match) {
             res.j = j;
             // all tests true, continue with next key of pattern t
@@ -159,29 +167,39 @@ function test(tokens, i, t) {
         }
       }
 
-      if (match === false) { return res; }
+      if (match === false) {
+        return res;
+      }
 
       continue;
     }
 
     switch (typeof t[key]) {
-    case 'boolean':
-    case 'number':
-    case 'string':
-      if (token[key] !== t[key]) { return res; }
-      break;
-    case 'function':
-      if (!t[key](token[key])) { return res; }
-      break;
-    case 'object':
-      if (isArrayOfFunctions(t[key])) {
-        const r = t[key].every(tt => tt(token[key]));
-        if (r === false) { return res; }
+      case "boolean":
+      case "number":
+      case "string":
+        if (token[key] !== t[key]) {
+          return res;
+        }
         break;
-      }
-    // fall through for objects !== arrays of functions
-    default:
-      throw new Error(`Unknown type of pattern test (key: ${key}). Test should be of type boolean, number, string, function or array of functions.`);
+      case "function":
+        if (!t[key](token[key])) {
+          return res;
+        }
+        break;
+      case "object":
+        if (isArrayOfFunctions(t[key])) {
+          const r = t[key].every((tt) => tt(token[key]));
+          if (r === false) {
+            return res;
+          }
+          break;
+        }
+      // fall through for objects !== arrays of functions
+      default:
+        throw new Error(
+          `Unknown type of pattern test (key: ${key}). Test should be of type boolean, number, string, function or array of functions.`,
+        );
     }
   }
 
@@ -191,11 +209,17 @@ function test(tokens, i, t) {
 }
 
 function isArrayOfObjects(arr) {
-  return Array.isArray(arr) && arr.length && arr.every(i => typeof i === 'object');
+  return (
+    Array.isArray(arr) && arr.length && arr.every((i) => typeof i === "object")
+  );
 }
 
 function isArrayOfFunctions(arr) {
-  return Array.isArray(arr) && arr.length && arr.every(i => typeof i === 'function');
+  return (
+    Array.isArray(arr) &&
+    arr.length &&
+    arr.every((i) => typeof i === "function")
+  );
 }
 
 /**
