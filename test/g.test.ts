@@ -4,7 +4,7 @@ import { implicitFigures } from "markdown-it-implicit-figures-for-enhancer";
 import { math } from "markdown-it-katex-for-enhancer";
 import { describe, expect, it } from "vitest";
 
-import attrs from "../src";
+import { attributes } from "../src";
 import type { AttributeNormalizedOptions } from "../src/types";
 import { escapeHtml, getAttrs, hasDelimiters } from "../src/utils";
 
@@ -35,7 +35,9 @@ describeTestsWithOptions(
 describe("markdown-it-attrs", () => {
   it("should not throw when getting only allowedAttributes option", async () => {
     const md = MarkdownIt();
-    await md.use(attrs, { allowedAttributes: [/^(class|attr)$/] }).isReady();
+    await md
+      .use(attributes, { allowedAttributes: [/^(class|attr)$/] })
+      .isReady();
     const src = "text {.someclass #someid attr=allowed}";
     const expected = '<p class="someclass" attr="allowed">text</p>\n';
     await expect(md.render(src)).resolves.toBe(expected);
@@ -166,7 +168,7 @@ function describeTestsWithOptions(
   describe("markdown-it-attrs" + postText, () => {
     const createMarkdown = async () => {
       const md = MarkdownIt();
-      await md.use(attrs, options).isReady();
+      await md.use(attributes, options).isReady();
       return md;
     };
 
@@ -968,7 +970,7 @@ function describeTestsWithOptions(
 
     it("should restrict attributes by allowedAttributes (string)", async () => {
       const md = MarkdownIt().use(
-        attrs,
+        attributes,
         Object.assign({ allowedAttributes: ["id", "class"] }, options),
       );
       await md.isReady();
@@ -981,7 +983,7 @@ function describeTestsWithOptions(
 
     it("should restrict attributes by allowedAttributes (regex)", async () => {
       const md = MarkdownIt().use(
-        attrs,
+        attributes,
         Object.assign({ allowedAttributes: [/^(class|attr)$/] }, options),
       );
       await md.isReady();
