@@ -1,4 +1,4 @@
-import { Token, TokenAttr } from "markdown-it-enhancer";
+import type { Token, TokenAttr } from "markdown-it-enhancer";
 
 import { AttributeNormalizedOptions, AttributeOptions } from "./types";
 
@@ -154,7 +154,7 @@ export const hasDelimiters = (
     );
   }
 
-  return function (str: string) {
+  return (str: string) => {
     // we need minimum three chars, for example {b}
     const minCurlyLength =
       options.leftDelimiter.length + 1 + options.rightDelimiter.length;

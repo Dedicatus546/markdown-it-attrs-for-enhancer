@@ -1,12 +1,12 @@
+import MarkdownItOld from "markdown-it";
 import MarkdownIt from "markdown-it-enhancer";
+import { implicitFigures } from "markdown-it-implicit-figures-for-enhancer";
+import { math } from "markdown-it-katex-for-enhancer";
 import { describe, expect, it } from "vitest";
 
 import attrs from "../src";
 import type { AttributeNormalizedOptions } from "../src/types";
 import { escapeHtml, getAttrs, hasDelimiters } from "../src/utils";
-
-// const implicitFigures = require("markdown-it-implicit-figures");
-// const katex = require("markdown-it-katex");
 
 describeTestsWithOptions(
   {
@@ -67,7 +67,7 @@ function describeTestsWithOptions(
           ["class", "class.with.dot"],
         ];
         const res = getAttrs(replaceDelimiters(src, options), 0, options);
-        expect(res).toBe(expected);
+        expect(res).toStrictEqual(expected);
       },
     );
 
@@ -77,7 +77,7 @@ function describeTestsWithOptions(
         const src = "{link=/some/page/in/app/id=1}";
         const expected = [["link", "/some/page/in/app/id=1"]];
         const res = getAttrs(replaceDelimiters(src, options), 0, options);
-        expect(res).toBe(expected);
+        expect(res).toStrictEqual(expected);
       },
     );
 
@@ -95,7 +95,7 @@ function describeTestsWithOptions(
           ["query", ""],
         ];
         const res = getAttrs(replaceDelimiters(src, options), 0, options);
-        expect(res).toBe(expected);
+        expect(res).toStrictEqual(expected);
       },
     );
 
@@ -109,56 +109,41 @@ function describeTestsWithOptions(
           // @ts-expect-error ignore
           () => hasDelimiters(0, options),
         ).toThrowError(
-          expect.objectContaining({
-            name: "Error",
-            message: expect.stringMatching(
-              /Should be "start", "end" or "only"/,
-            ),
-          }),
+          new Error(
+            'Parameter `where` not passed. Should be "start", "end" or "only".',
+          ),
         );
         expect(
           // @ts-expect-error ignore
           () => hasDelimiters("", options),
         ).toThrowError(
-          expect.objectContaining({
-            name: "Error",
-            message: expect.stringMatching(
-              /Should be "start", "end" or "only"/,
-            ),
-          }),
+          new Error(
+            'Parameter `where` not passed. Should be "start", "end" or "only".',
+          ),
         );
         expect(
           // @ts-expect-error ignore
           () => hasDelimiters(null, options),
         ).toThrowError(
-          expect.objectContaining({
-            name: "Error",
-            message: expect.stringMatching(
-              /Should be "start", "end" or "only"/,
-            ),
-          }),
+          new Error(
+            'Parameter `where` not passed. Should be "start", "end" or "only".',
+          ),
         );
         expect(
           // @ts-expect-error ignore
           () => hasDelimiters(undefined, options),
         ).toThrowError(
-          expect.objectContaining({
-            name: "Error",
-            message: expect.stringMatching(
-              /Should be "start", "end" or "only"/,
-            ),
-          }),
+          new Error(
+            'Parameter `where` not passed. Should be "start", "end" or "only".',
+          ),
         );
         expect(
           // @ts-expect-error ignore
           () => hasDelimiters("center", options)("has {#test} delimiters"),
         ).toThrowError(
-          expect.objectContaining({
-            name: "Error",
-            message: expect.stringMatching(
-              /Should be "start", "end" or "only"/,
-            ),
-          }),
+          new Error(
+            "Unexpected case center, expected 'start', 'end' or 'only'",
+          ),
         );
       },
     );
@@ -809,6 +794,8 @@ function describeTestsWithOptions(
         expected += "</tr>\n";
         expected += "</tbody>\n";
         expected += "</table>\n";
+        console.log(await md.render(replaceDelimiters(src, options)));
+        console.log(expected);
         await expect(md.render(replaceDelimiters(src, options))).resolves.toBe(
           expected,
         );
@@ -847,7 +834,7 @@ function describeTestsWithOptions(
       replaceDelimiters("should work with plugin implicit-figures", options),
       async () => {
         const md = await createMarkdown();
-        await md.use(implicitFigures).isReady();
+        await md.use(implicitFigures, {}).isReady();
         const src = "![alt](img.png){.a}";
         const expected =
           '<figure><img src="img.png" alt="alt" class="a"></figure>\n';
@@ -861,8 +848,8 @@ function describeTestsWithOptions(
       replaceDelimiters("should work with plugin katex", options),
       async () => {
         const md = await createMarkdown();
-        md.use(katex);
-        const mdWithOnlyKatex = MarkdownIt().use(katex);
+        md.use(math, {});
+        const mdWithOnlyKatex = MarkdownIt().use(math, {});
         await mdWithOnlyKatex.isReady();
         const src = "$\\sqrt{a}$";
         await expect(md.render(src)).resolves.toBe(
@@ -1000,7 +987,7 @@ function describeTestsWithOptions(
       await md.isReady();
       const src = "text {.someclass #someid attr=allowed}";
       const expected = '<p class="someclass" attr="allowed">text</p>\n';
-      expect(md.render(replaceDelimiters(src, options))).resolves.toBe(
+      await expect(md.render(replaceDelimiters(src, options))).resolves.toBe(
         expected,
       );
     });
@@ -1047,6 +1034,21 @@ function describeTestsWithOptions(
         );
       },
     );
+
+    it("test table", async () => {
+      const md = MarkdownIt();
+      const mdo = MarkdownItOld();
+      let src = "| A | B | C | D |\n";
+      src += "| -- | -- | -- | -- |\n";
+      src += "| 1 | 11 | 111 | 1111 {rowspan=3} |\n";
+      src += "| 2 {colspan=2 rowspan=2} | 22 | 222 | 2222 |\n";
+      src += "| 3 | 33 | 333 | 3333 |\n";
+      src += "\n";
+      src += "{border=1}\n";
+      const expected = mdo.render(src);
+      await expect(md.render(src)).resolves.toBe(expected);
+      console.log(expected);
+    });
   });
 }
 

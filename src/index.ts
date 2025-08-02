@@ -18,42 +18,6 @@ const defaultOptions: AttributeNormalizedOptions = {
   allowedAttributes: [],
 };
 
-const attributes: MarkdownItPlugin<[AttributeOptions]> = (md, options) => {
-  const normalizedOptions = Object.assign({}, defaultOptions, options);
-
-  const patterns = patternsConfig(normalizedOptions);
-
-  const curlyAttrs: StateCoreRuleFn = (state) => {
-    const tokens = state.tokens;
-
-    for (let i = 0; i < tokens.length; i++) {
-      for (let p = 0; p < patterns.length; p++) {
-        const pattern = patterns[p];
-        let j = null; // position of child with offset 0
-        const match = pattern.tests.every((t) => {
-          const res = test(tokens, i, t);
-          if (res.j !== null) {
-            j = res.j;
-          }
-          return res.match;
-        });
-        if (match) {
-          pattern.transform(tokens, i, j!);
-          if (
-            pattern.name === "inline attributes" ||
-            pattern.name === "inline nesting 0"
-          ) {
-            // retry, may be several inline attributes
-            p--;
-          }
-        }
-      }
-    }
-  };
-
-  md.core.ruler.before("linkify", "curly_attributes", curlyAttrs);
-};
-
 /**
  * Test if t matches token stream.
  */
@@ -163,4 +127,41 @@ const test = (
   return res;
 };
 
-export default attributes;
+export const attributes: MarkdownItPlugin<[AttributeOptions]> = (
+  md,
+  options,
+) => {
+  const normalizedOptions = Object.assign({}, defaultOptions, options);
+
+  const patterns = patternsConfig(normalizedOptions);
+
+  const curlyAttrs: StateCoreRuleFn = (state) => {
+    const tokens = state.tokens;
+
+    for (let i = 0; i < tokens.length; i++) {
+      for (let p = 0; p < patterns.length; p++) {
+        const pattern = patterns[p];
+        let j = null; // position of child with offset 0
+        const match = pattern.tests.every((t) => {
+          const res = test(tokens, i, t);
+          if (res.j !== null) {
+            j = res.j;
+          }
+          return res.match;
+        });
+        if (match) {
+          pattern.transform(tokens, i, j!);
+          if (
+            pattern.name === "inline attributes" ||
+            pattern.name === "inline nesting 0"
+          ) {
+            // retry, may be several inline attributes
+            p--;
+          }
+        }
+      }
+    }
+  };
+
+  md.core.ruler.before("linkify", "curly_attributes", curlyAttrs);
+};

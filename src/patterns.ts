@@ -187,7 +187,7 @@ export const patterns = (
         let idx = i - 2;
         while (idx > 0 && "tbody_open" !== tokens[--idx].type);
 
-        const calc = (tokens[idx].meta?.colsnum as number) >> 0;
+        const calc = tokens[idx].meta?.colsnum ?? 0;
         if (calc < 2) {
           return;
         }
@@ -201,7 +201,7 @@ export const patterns = (
           const token = tokens[n];
           const rows = token.hidden
             ? 0
-            : Number.parseInt(token.attrGet(",") ?? "0");
+            : Number.parseInt(token.attrGet("rowspan") ?? "0");
           const cols = token.hidden
             ? 0
             : Number.parseInt(token.attrGet("colspan") ?? "0");
