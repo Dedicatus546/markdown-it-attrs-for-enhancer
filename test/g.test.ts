@@ -1,5 +1,5 @@
 import MarkdownItOld from "markdown-it";
-import MarkdownIt from "markdown-it-enhancer";
+import { MarkdownIt } from "markdown-it-enhancer";
 import { implicitFigures } from "markdown-it-implicit-figures-for-enhancer";
 import { math } from "markdown-it-katex-for-enhancer";
 import { describe, expect, it } from "vitest";
@@ -34,7 +34,7 @@ describeTestsWithOptions(
 
 describe("markdown-it-attrs", () => {
   it("should not throw when getting only allowedAttributes option", async () => {
-    const md = MarkdownIt();
+    const md = new MarkdownIt();
     await md
       .use(attributes, { allowedAttributes: [/^(class|attr)$/] })
       .isReady();
@@ -167,7 +167,7 @@ function describeTestsWithOptions(
 
   describe("markdown-it-attrs" + postText, () => {
     const createMarkdown = async () => {
-      const md = MarkdownIt();
+      const md = new MarkdownIt();
       await md.use(attributes, options).isReady();
       return md;
     };
@@ -851,7 +851,7 @@ function describeTestsWithOptions(
       async () => {
         const md = await createMarkdown();
         md.use(math, {});
-        const mdWithOnlyKatex = MarkdownIt().use(math, {});
+        const mdWithOnlyKatex = new MarkdownIt().use(math, {});
         await mdWithOnlyKatex.isReady();
         const src = "$\\sqrt{a}$";
         await expect(md.render(src)).resolves.toBe(
@@ -969,7 +969,7 @@ function describeTestsWithOptions(
     );
 
     it("should restrict attributes by allowedAttributes (string)", async () => {
-      const md = MarkdownIt().use(
+      const md = new MarkdownIt().use(
         attributes,
         Object.assign({ allowedAttributes: ["id", "class"] }, options),
       );
@@ -982,7 +982,7 @@ function describeTestsWithOptions(
     });
 
     it("should restrict attributes by allowedAttributes (regex)", async () => {
-      const md = MarkdownIt().use(
+      const md = new MarkdownIt().use(
         attributes,
         Object.assign({ allowedAttributes: [/^(class|attr)$/] }, options),
       );
@@ -1038,7 +1038,7 @@ function describeTestsWithOptions(
     );
 
     it("test table", async () => {
-      const md = MarkdownIt();
+      const md = new MarkdownIt();
       const mdo = MarkdownItOld();
       let src = "| A | B | C | D |\n";
       src += "| -- | -- | -- | -- |\n";
