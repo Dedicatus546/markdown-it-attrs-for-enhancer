@@ -45,17 +45,17 @@ importers:
         specifier: '>=13.0.1'
         version: 14.1.0
       markdown-it-enhancer:
-        specifier: 14.1.1050
-        version: 14.1.1050
+        specifier: ^14.1.1070
+        version: 14.1.1070
       markdown-it-implicit-figures-for-enhancer:
         specifier: ^0.12.1000
-        version: 0.12.1000(markdown-it-enhancer@14.1.1050)
+        version: 0.12.1000(markdown-it-enhancer@14.1.1070)
       markdown-it-katex:
         specifier: ^2.0.3
         version: 2.0.3
       markdown-it-katex-for-enhancer:
         specifier: ^2.0.1003
-        version: 2.0.1003(markdown-it-enhancer@14.1.1050)
+        version: 2.0.1003(markdown-it-enhancer@14.1.1070)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -1247,10 +1247,9 @@ packages:
     resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
     engines: {node: '>=10'}
 
-  markdown-it-enhancer@14.1.1050:
-    resolution: {integrity: sha512-6v6Su9rohxUdp2tmM0F4GRD3sw1C7cwN+RJTqm1jTNQO+cOYBwp+uNeWFi5/DJ7B1GAivAujG2zCo5nwznV+bA==}
+  markdown-it-enhancer@14.1.1070:
+    resolution: {integrity: sha512-DY0cg2YpmJqDgqU4AgxLtsCDWTBk+zaau0a52JqZeTEbiEzJ7bo+yO86FB4jhCW+yRkontEKLjunq9SJi8xfew==}
     engines: {node: '>=20'}
-    hasBin: true
 
   markdown-it-implicit-figures-for-enhancer@0.12.1000:
     resolution: {integrity: sha512-xFNxueeZZFTzMQT1XXnExXI7+usTs4q2STGeXXh5htZCq/mGtQN+fKbqMvEgUpwGkV+2o0nA5j7CSl3huDJ9Sg==}
@@ -2921,23 +2920,22 @@ snapshots:
     dependencies:
       semver: 7.7.2
 
-  markdown-it-enhancer@14.1.1050:
+  markdown-it-enhancer@14.1.1070:
     dependencies:
-      argparse: 2.0.1
       entities: 6.0.1
       linkify-it: 5.0.0
       mdurl: 2.0.0
       punycode.js: 2.3.1
       uc.micro: 2.1.0
 
-  markdown-it-implicit-figures-for-enhancer@0.12.1000(markdown-it-enhancer@14.1.1050):
+  markdown-it-implicit-figures-for-enhancer@0.12.1000(markdown-it-enhancer@14.1.1070):
     dependencies:
-      markdown-it-enhancer: 14.1.1050
+      markdown-it-enhancer: 14.1.1070
 
-  markdown-it-katex-for-enhancer@2.0.1003(markdown-it-enhancer@14.1.1050):
+  markdown-it-katex-for-enhancer@2.0.1003(markdown-it-enhancer@14.1.1070):
     dependencies:
       katex: 0.16.22
-      markdown-it-enhancer: 14.1.1050
+      markdown-it-enhancer: 14.1.1070
 
   markdown-it-katex@2.0.3:
     dependencies:
